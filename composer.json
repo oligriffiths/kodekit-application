@@ -1,0 +1,18 @@
+{
+  "name": "oligriffiths/kodekit-application",
+  "description": "KodeKit Application Component",
+  "keywords": ["kodekit", "application", "component"],
+  "type": "component",
+  "homepage": "https://github.com/oligriffiths/kodekit-application",
+  "license": "MPLv2",
+  "authors": [
+    {
+      "name": "Timble",
+      "homepage": "https://github.com/tumble"
+    }
+  ],
+  "require": {
+    "php": ">=5.5.0",
+    "oligriffiths/kodekit": "dev-develop"
+  }
+}
