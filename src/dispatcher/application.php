@@ -17,7 +17,7 @@ use Kodekit\Library;
  * @author  Johan Janssens <http://github.com/johanjanssens>
  * @package Component\Application
  */
-class Dispatcher extends Library\DispatcherAbstract implements Library\ObjectInstantiable
+class DispatcherApplication extends Library\DispatcherAbstract implements Library\ObjectInstantiable
 {
     /**
      * Initializes the options for the object
@@ -63,6 +63,15 @@ class Dispatcher extends Library\DispatcherAbstract implements Library\ObjectIns
     }
 
     /**
+     * Ensure dispatcher is dispatchable
+     * @return bool
+     */
+    public function canDispatch()
+    {
+        return true;
+    }
+
+    /**
      * Get the application router.
      *
      * @param  array $options 	An optional associative array of configuration options.
@@ -71,6 +80,68 @@ class Dispatcher extends Library\DispatcherAbstract implements Library\ObjectIns
     public function getRouter(array $options = array())
     {
         return $this->getObject('com:application.dispatcher.router', $options);
+    }
+
+    /**
+     * Method to set a controller dispatcher object attached to the application dispatcher
+     *
+     * @param	mixed	$controller An object that implements ControllerInterface, ObjectIdentifier object
+     * 					            or valid identifier string
+     * @param  array  $config  An optional associative array of configuration options
+     * @return	DispatcherApplication
+     */
+    public function setController($controller, $config = array())
+    {
+        if(!($controller instanceof Library\ControllerInterface))
+        {
+            if(is_string($controller) && strpos($controller, '.') === false )
+            {
+                // Controller names are always singular
+                if(Library\StringInflector::isPlural($controller)) {
+                    $controller = Library\StringInflector::singularize($controller);
+                }
+
+                $identifier			= $this->getIdentifier()->toArray();
+                $identifier['name']	= $controller;
+
+                $identifier = $this->getIdentifier($identifier);
+            }
+            else $identifier = $this->getIdentifier($controller);
+
+            //Set the configuration
+            $identifier->getConfig()->append($config);
+
+            $controller = $identifier;
+        }
+
+        $this->_controller = $controller;
+
+        return $this;
+    }
+
+    /**
+     * Fetches the controller object
+     *
+     * @throws Library\HttpExceptionNotFound if no controller found and no fallback defined
+     * @param null|string $fallback A fallback controller name
+     * @return Library\ControllerAbstract
+     */
+    public function getController($fallback = null)
+    {
+        // Fetch controller identifier
+        $identifier = $this->_controller instanceof Library\ObjectIdentifier ? $this->_controller : parent::getController()->getIdentifier();
+        if (!$identifier->getName()) {
+
+            if (!$fallback) {
+                throw new Library\HttpExceptionNotFound();
+            }
+
+            $identifier = $this->getIdentifier()->toArray();
+            $identifier['name'] = $fallback;
+            $this->setController($identifier);
+        }
+
+        return parent::getController();
     }
 
     /**
@@ -112,15 +183,14 @@ class Dispatcher extends Library\DispatcherAbstract implements Library\ObjectIns
     }
 
     /**
-     * Forward the request
+     * Fail the request
      *
-     * @throws \InvalidArgumentException If the action parameter is not an instance of Exception or ExceptionError
      * @param Library\DispatcherContextInterface $context	A dispatcher context object
      */
     protected function _actionFail(Library\DispatcherContextInterface $context)
     {
         //Execute the component and pass along the contex
-        $this->getController()->fail($context);
+        $this->getController('error')->fail($context);
     }
 
     /**
@@ -131,6 +201,6 @@ class Dispatcher extends Library\DispatcherAbstract implements Library\ObjectIns
     protected function _actionRedirect(Library\DispatcherContextInterface $context)
     {
         //Execute the component and pass along the context
-        $this->getController()->redirect($context);
+        $this->getController('redirect')->redirect($context);
     }
 }
