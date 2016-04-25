@@ -13,7 +13,7 @@
   ],
   "require": {
     "php": ">=5.5.0",
-    "oligriffiths/kodekit": "dev-develop"
+    "timblr/kodekit": "dev-master"
   },
   "autoload": {
     "files": ["autoload.php"]
