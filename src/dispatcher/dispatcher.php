@@ -17,7 +17,7 @@ use Kodekit\Library;
  * @author  Johan Janssens <http://github.com/johanjanssens>
  * @package Component\Application
  */
-class DispatcherApplication extends Library\DispatcherAbstract implements Library\ObjectInstantiable
+class Dispatcher extends Library\DispatcherAbstract implements Library\ObjectInstantiable
 {
     /**
      * Initializes the options for the object
@@ -83,68 +83,6 @@ class DispatcherApplication extends Library\DispatcherAbstract implements Librar
     }
 
     /**
-     * Method to set a controller dispatcher object attached to the application dispatcher
-     *
-     * @param	mixed	$controller An object that implements ControllerInterface, ObjectIdentifier object
-     * 					            or valid identifier string
-     * @param  array  $config  An optional associative array of configuration options
-     * @return	DispatcherApplication
-     */
-    public function setController($controller, $config = array())
-    {
-        if(!($controller instanceof Library\ControllerInterface))
-        {
-            if(is_string($controller) && strpos($controller, '.') === false )
-            {
-                // Controller names are always singular
-                if(Library\StringInflector::isPlural($controller)) {
-                    $controller = Library\StringInflector::singularize($controller);
-                }
-
-                $identifier			= $this->getIdentifier()->toArray();
-                $identifier['name']	= $controller;
-
-                $identifier = $this->getIdentifier($identifier);
-            }
-            else $identifier = $this->getIdentifier($controller);
-
-            //Set the configuration
-            $identifier->getConfig()->append($config);
-
-            $controller = $identifier;
-        }
-
-        $this->_controller = $controller;
-
-        return $this;
-    }
-
-    /**
-     * Fetches the controller object
-     *
-     * @throws Library\HttpExceptionNotFound if no controller found and no fallback defined
-     * @param null|string $fallback A fallback controller name
-     * @return Library\ControllerAbstract
-     */
-    public function getController($fallback = null)
-    {
-        // Fetch controller identifier
-        $identifier = $this->_controller instanceof Library\ObjectIdentifier ? $this->_controller : parent::getController()->getIdentifier();
-        if (!$identifier->getName()) {
-
-            if (!$fallback) {
-                throw new Library\HttpExceptionNotFound();
-            }
-
-            $identifier = $this->getIdentifier()->toArray();
-            $identifier['name'] = $fallback;
-            $this->setController($identifier);
-        }
-
-        return parent::getController();
-    }
-
-    /**
      * Resolve the request
      *
      * @param Library\DispatcherContextInterface $context A dispatcher context object
@@ -153,19 +91,19 @@ class DispatcherApplication extends Library\DispatcherAbstract implements Librar
     {
         parent::_resolveRequest($context);
 
-        $url = clone $context->request->getUrl();
+        $url = clone $context->getRequest()->getUrl();
 
         //Parse the route
         $this->getRouter()->parse($url);
 
         //Set the request
-        $context->request->query->add($url->query);
+        $context->getRequest()->getQuery()->add($url->query);
 
         //Resolve the component
-        if($context->request->query->has('component'))
+        if($context->getRequest()->getQuery()->has('component'))
         {
             $identifier  = $this->getIdentifier()->toArray();
-            $identifier['package'] = $context->request->query->get('component', 'cmd');;
+            $identifier['package'] = $context->getRequest()->getQuery()->get('component', 'cmd');
 
             $this->setController($identifier);
         }
@@ -175,32 +113,50 @@ class DispatcherApplication extends Library\DispatcherAbstract implements Librar
      * Forward the request
      *
      * @param Library\DispatcherContextInterface $context A dispatcher context object
+     * @return	mixed
      */
     protected function _actionDispatch(Library\DispatcherContextInterface $context)
     {
+        $identifier = $this->_controller instanceof Library\ObjectIdentifier ? $this->_controller : $this->getController()->getIdentifier();
+        if ($identifier->getPackage() === 'application') {
+            throw new Library\HttpExceptionNotFound();
+        }
+
         //Execute the component and pass along the context
-        $this->getController()->dispatch($context);
+        return $this->getController()->dispatch($context);
     }
 
     /**
      * Fail the request
      *
      * @param Library\DispatcherContextInterface $context	A dispatcher context object
+     * @return	mixed
      */
     protected function _actionFail(Library\DispatcherContextInterface $context)
     {
+        $identifier = $this->_controller instanceof Library\ObjectIdentifier ? $this->_controller : $this->getController()->getIdentifier();
+        if ($identifier->getPackage() === 'application') {
+            return parent::_actionFail($context);
+        }
+
         //Execute the component and pass along the contex
-        $this->getController('error')->fail($context);
+        return $this->getController()->fail($context);
     }
 
     /**
      * Forward the request
      *
      * @param Library\DispatcherContextInterface $context	A dispatcher context object
+     * @return	mixed
      */
     protected function _actionRedirect(Library\DispatcherContextInterface $context)
     {
+        $identifier = $this->_controller instanceof Library\ObjectIdentifier ? $this->_controller : $this->getController()->getIdentifier();
+        if ($identifier->getPackage() === 'application') {
+            return parent::_actionRedirect($context);
+        }
+
         //Execute the component and pass along the context
-        $this->getController('redirect')->redirect($context);
+        return $this->getController()->redirect($context);
     }
 }

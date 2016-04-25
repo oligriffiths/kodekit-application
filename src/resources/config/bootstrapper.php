@@ -10,7 +10,7 @@
 return array(
 
     'aliases'  => array(
-        'application'       => 'com:application.dispatcher.application',
+        'application'       => 'com:application.dispatcher',
         'translator'        => 'com:application.translator',
 
         'lib:template.locator.component'    => 'com:application.template.locator.component',
