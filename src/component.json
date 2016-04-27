@@ -17,6 +17,10 @@
       "email": "info@timble.net",
       "homepage": "http://www.timble.net"
     }
-  ]
+  ],
+  "bootstrap": {
+    "identifier": "com:application",
+    "namespace": "Kodekit\\Component\\Application"
+  }
 }
 
